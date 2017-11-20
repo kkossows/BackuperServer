@@ -17,11 +17,13 @@ public class ServerWorker implements Runnable{
 
     private String ipAddress;
     private int portNumber;
+    private AppController appController;
 
 
-    public ServerWorker(String ipAddress, int portNumber){
+    public ServerWorker(String ipAddress, int portNumber, AppController appController){
         this.ipAddress = ipAddress;
         this.portNumber = portNumber;
+        this.appController = appController;
     }
 
 
@@ -32,7 +34,7 @@ public class ServerWorker implements Runnable{
         try {
             InetAddress serverIpAddress = InetAddress.getByName(ipAddress);
             serverSocket = new ServerSocket(portNumber, 10, serverIpAddress);
-            AppController.writeLog(
+            appController.writeLog(
                     "Server listening: " + ipAddress + ":" + portNumber
             );
 
@@ -44,11 +46,14 @@ public class ServerWorker implements Runnable{
         while(true) {
             try {
                 Socket clientSocket = serverSocket.accept();
-                AppController.writeLog(
+                appController.writeLog(
                         "Connection with client established"
                 );
                 if (clientSocket.isConnected()){
-                    ClientHandler newClientHandler = new ClientHandler(clientSocket);
+                    ClientHandler newClientHandler = new ClientHandler(
+                            clientSocket,
+                            appController
+                    );
                     Thread newClientThread = new Thread(newClientHandler);
                     newClientThread.start();
                 }

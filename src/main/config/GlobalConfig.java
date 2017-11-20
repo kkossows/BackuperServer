@@ -6,6 +6,9 @@ import java.io.Serializable;
  * Created by kkossowski on 20.11.2017.
  */
 public class GlobalConfig implements Serializable {
+    //variable set up when start server button clicked
+    public static String storagePath = null;
+
     private String defaultServerIpAddress;
     private int defaultServerPortNumber;
 
@@ -21,6 +24,15 @@ public class GlobalConfig implements Serializable {
         this.savedServerIpAddress = "";
         this.savedServerPortNumber = -1;
         this.savedStoragePath = "";
+    }
+
+    public GlobalConfig(String savedServerIpAddress, int savedServerPortNumber, String savedStoragePath){
+        this.defaultServerIpAddress = Properties.defaultServerIpAddress;
+        this.defaultServerPortNumber = Properties.defaultServerPortNumber;
+
+        this.savedServerIpAddress = savedServerIpAddress;
+        this.savedServerPortNumber = savedServerPortNumber;
+        this.savedStoragePath = savedStoragePath;
     }
 
 
@@ -41,15 +53,8 @@ public class GlobalConfig implements Serializable {
         return this.defaultServerPortNumber;
     }
 
-
     public boolean areConfigVariablesDifferentThanDefault() {
         if (savedServerIpAddress != "" && savedServerPortNumber != -1)
-            return true;
-        else
-            return false;
-    }
-    public boolean isStoragePathChoosen() {
-        if (savedStoragePath != "")
             return true;
         else
             return false;

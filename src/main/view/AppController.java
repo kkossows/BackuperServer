@@ -25,10 +25,11 @@ public class AppController implements Initializable {
     @FXML
     private Label lb_folderPath;
     @FXML
+    private Label lb_activeUsersNumber;
+    @FXML
     private TextField tx_serverIpAddress;
     @FXML
     private TextField tx_serverPortNumber;
-
     @FXML
     private Button btn_startServer;
     @FXML
@@ -37,13 +38,14 @@ public class AppController implements Initializable {
     private Button btn_chooseFolder;
     @FXML
     private Button btn_quit;
-
     @FXML
     private TextArea ta_logs;
-
+    @FXML
+    private CheckBox ch_rememberSettings;
 
     //-------------------Other variables
     String noDirectorySelectedText = "No Directory selected";
+    boolean areSettingsRemembered;
 
 
     //-------------------FXML methods
@@ -58,15 +60,17 @@ public class AppController implements Initializable {
         //fulfill variables with config of default values
         GlobalConfig globalConfig = ConfigDataManager.readGlobalConfig();
         if (globalConfig.areConfigVariablesDifferentThanDefault()) {
+            areSettingsRemembered = true;
             tx_serverIpAddress.setText(globalConfig.getSavedServerIpAddress());
             tx_serverPortNumber.setText(Integer.toString(globalConfig.getSavedServerPortNumber()));
         } else {
+            areSettingsRemembered = false;
             tx_serverIpAddress.setText(globalConfig.getDefaultServerIpAddress());
             tx_serverPortNumber.setText(Integer.toString(globalConfig.getDefaultServerPortNumber()));
         }
 
         //fulfill storagePath - if empty in globalConfig, show first application launch information to user.
-        if (globalConfig.isStoragePathChoosen()){
+        if (areSettingsRemembered){
             lb_folderPath.setText(globalConfig.getSavedStoragePath());
         }
         else{
@@ -78,7 +82,6 @@ public class AppController implements Initializable {
             lb_folderPath.setText(noDirectorySelectedText);
         }
     }
-
     @FXML
     void btn_chooseFolder_OnClick(ActionEvent event) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -92,7 +95,25 @@ public class AppController implements Initializable {
             lb_folderPath.setText(selectedDirectory.getAbsolutePath());
         }
     }
+    @FXML
+    void btn_clearSettings_OnClick(ActionEvent event){
+        if (areSettingsRemembered){
+            GlobalConfig newGlobalConfig = new GlobalConfig();
+            ConfigDataManager.createGlobalConfig(newGlobalConfig);
 
+            showInformationDialog(
+                    "Clear settings result",
+                    "Settings cleared."
+            );
+        }
+        else {
+            showInformationDialog(
+                    "Clear settings result",
+                    "No settings saved."
+            );
+        }
+
+    }
     @FXML
     void btn_quit_OnClick(ActionEvent event) {
         //close application
@@ -120,9 +141,30 @@ public class AppController implements Initializable {
         }
 
         if ( !storagePool.equals(noDirectorySelectedText) && serverIp != "" && serverPortNumber > 0 ) {
+            //save values if Remember values checked
+            if (ch_rememberSettings.isSelected()){
+                GlobalConfig newGlobalConfig = new GlobalConfig(
+                        serverIp,
+                        serverPortNumber,
+                        storagePool
+                );
+                ConfigDataManager.createGlobalConfig(newGlobalConfig);
+            }
+
+            //set storagePath
+            GlobalConfig.storagePath = storagePool;
+
+            //disable all controls
+            btn_chooseFolder.setDisable(true);
+            ch_rememberSettings.setDisable(true);
+            tx_serverIpAddress.setDisable(true);
+            tx_serverPortNumber.setDisable(true);
+
+            //start serverWorker
             ServerWorker serverWorker = new ServerWorker(
                     serverIp,
-                    serverPortNumber
+                    serverPortNumber,
+                    this
             );
             Thread serverThread = new Thread(serverWorker);
             serverWorker.run();
@@ -134,22 +176,28 @@ public class AppController implements Initializable {
             );
         }
     }
-
     @FXML
     void btn_stopServer_OnClick(ActionEvent event) {
 
+
+
+        //enable all controls
+        btn_chooseFolder.setDisable(false);
+        ch_rememberSettings.setDisable(false);
+        tx_serverIpAddress.setDisable(false);
+        tx_serverPortNumber.setDisable(false);
     }
 
 
     //-------------------Other variables
-    void showInformationDialog(String title, String content){
+    private void showInformationDialog(String title, String content){
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
         alert.setContentText(content);
 
         alert.showAndWait();
     }
-    void showWarningDialog(String title, String content){
+    private void showWarningDialog(String title, String content){
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle(title);
         alert.setContentText(content);
@@ -157,8 +205,13 @@ public class AppController implements Initializable {
         alert.showAndWait();
     }
 
+
     //-------------------Public methods
-    public static void writeLog(String logContent){
+    public void updateNumberOfActiveUsers(int numberOfActiveUsers){
+        lb_activeUsersNumber.setText(Integer.toString(numberOfActiveUsers));
+    }
+
+    public void writeLog(String logContent){
         //https://stackoverflow.com/questions/24116858/most-efficient-way-to-log-messages-to-javafx-textarea-via-threads-with-simple-cu
     }
 }
