@@ -1,5 +1,6 @@
 package main.networking;
 
+import javafx.application.Platform;
 import main.config.*;
 import main.utils.ServerFile;
 import main.view.AppController;
@@ -94,6 +95,12 @@ public class ClientHandler implements Runnable{
     private ClientMessage getClientMessage(){
         try {
             String message = in.readLine();
+
+            //show log
+            Platform.runLater(() -> appController.writeLog(
+                    "#GET message: " + message
+            ));
+
             return ClientMessage.valueOf(message);
         }
         catch (IllegalArgumentException e) {
@@ -143,6 +150,14 @@ public class ClientHandler implements Runnable{
 
                 //send final response
                 out.println(ServerMessage.USER_CREATED.name());
+
+                //show log
+                Platform.runLater(() -> appController.writeLog(
+                        "New user registered: "
+                                + "username: " + username + " "
+                                + "password: " + password
+                ));
+
             } else {
                 out.println(ServerMessage.USER_EXISTS.name());
             }
@@ -195,13 +210,27 @@ public class ClientHandler implements Runnable{
                         // - if user would like to login from many sessions at once, it will be detected and rejected
                         ConfigDataManager.createUserConfig(currentUserConfig);
 
+                        //show log
+                        Platform.runLater(() -> appController.writeLog(
+                                "User login: "
+                                        + "username: " + username
+                        ));
+
                         //change view counter
                         numberOfActiveUsers++;
-                        appController.updateNumberOfActiveUsers(numberOfActiveUsers);
+                        Platform.runLater(() -> appController.updateNumberOfActiveUsers(
+                                numberOfActiveUsers)
+                        );
 
                         out.println(ServerMessage.LOGIN_SUCCESS.name());
                     }
                 } else {
+                    //show log
+                    Platform.runLater(() -> appController.writeLog(
+                            "User login failed: "
+                                    + "username: " + username
+                    ));
+
                     out.println(ServerMessage.LOGIN_FAILED.name());
                 }
             }
@@ -259,6 +288,12 @@ public class ClientHandler implements Runnable{
             //delete userConfigFile
             ConfigDataManager.deleteUserConfig(currentUserConfig);
 
+            //show log
+            Platform.runLater(() -> appController.writeLog(
+                    "User deleted: "
+                            + "username: " + currentUserConfig.getUsername()
+            ));
+
             //send final response
             out.println(ServerMessage.DELETE_USER_FINISHED.name());
         }
@@ -272,9 +307,17 @@ public class ClientHandler implements Runnable{
             //save
             ConfigDataManager.createUserConfig(userConfig);
 
+            //show log
+            Platform.runLater(() -> appController.writeLog(
+                    "User logout: "
+                            + "username: " + currentUserConfig.getUsername()
+            ));
+
             //change number on display view
             numberOfActiveUsers--;
-            appController.updateNumberOfActiveUsers(numberOfActiveUsers);
+            Platform.runLater(() -> appController.updateNumberOfActiveUsers(
+                    numberOfActiveUsers)
+            );
 
             //send final response
             out.println(ServerMessage.LOG_OUT_FINISHED.name());
@@ -309,6 +352,12 @@ public class ClientHandler implements Runnable{
             //save userConfig
             ConfigDataManager.createUserConfig(currentUserConfig);
 
+            //show log
+            Platform.runLater(() -> appController.writeLog(
+                    "File deleted with all versions: "
+                            + "filePath: " + filePath
+            ));
+
             //inform about operation success
             out.println(ServerMessage.FILE_REMOVED.name());
         } catch (IOException e) {
@@ -332,6 +381,13 @@ public class ClientHandler implements Runnable{
             //save userConfig
             ConfigDataManager.createUserConfig(currentUserConfig);
 
+            //show log
+            Platform.runLater(() -> appController.writeLog(
+                    "Version deleted: "
+                            + "filePath: " + filePath + " "
+                            + "version: " + fileVersion
+            ));
+
             //inform about operation success
             out.println(ServerMessage.FILE_VERSION_REMOVED.name());
         } catch (IOException e) {
@@ -344,6 +400,12 @@ public class ClientHandler implements Runnable{
             out.close();
             in.close();
             clientSocket.close();
+
+            //show log
+            Platform.runLater(() -> appController.writeLog(
+                    "Connection closed: "
+                            + "user: " + currentUserConfig.getUsername()
+            ));
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -11,8 +11,8 @@ public class ConfigDataManager {
     public static boolean isAppDirExists(){
         return new File(Properties.appDataDir).exists();
     }
-    public static boolean createAppDir(){
-        return new File(Properties.appDataDir).mkdir();
+    public static void createAppDir(){
+        new File(Properties.appDataDir).mkdir();
     }
 
 

@@ -54,9 +54,6 @@ public class UserConfig implements Serializable{
     public String getUsername() {
         return username;
     }
-    public File getStoragePool() {
-        return storagePool;
-    }
     public File getUserConfigFile(){
         return userConfigFile;
     }
@@ -70,9 +67,6 @@ public class UserConfig implements Serializable{
 
     public ArrayList<ServerFile> getServerFiles() {
         return serverFiles;
-    }
-    public void setServerFiles(ArrayList<ServerFile> serverFiles) {
-        this.serverFiles = serverFiles;
     }
 
     public int addServerFile(ServerFile newServerFile){
@@ -99,6 +93,8 @@ public class UserConfig implements Serializable{
                 //delete physical data
                 if (newFile.exists())
                     newFile.delete();
+
+                //no need to remove it from list, list will not be used any more
             }
 
             //delete folder structure connected to that file
@@ -158,6 +154,9 @@ public class UserConfig implements Serializable{
                 //delete physical data
                 if (newFile.exists())
                     newFile.delete();
+
+                //delete version from list
+                serverFiles.get(serverFileIndex).removeFileVersion(version);
             }
         }
     }
@@ -181,7 +180,6 @@ public class UserConfig implements Serializable{
         }
         return index;
     }
-
 
     /**
      * Method use path.getParentFile() repeatedly to get all components of a path.
@@ -213,6 +211,4 @@ public class UserConfig implements Serializable{
             }
         }
     }
-
-
 }

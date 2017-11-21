@@ -1,6 +1,7 @@
 package main.networking;
 
 import com.sun.xml.internal.bind.v2.model.annotation.RuntimeAnnotationReader;
+import javafx.application.Platform;
 import main.view.AppController;
 
 import java.io.IOException;
@@ -34,9 +35,12 @@ public class ServerWorker implements Runnable{
         try {
             InetAddress serverIpAddress = InetAddress.getByName(ipAddress);
             serverSocket = new ServerSocket(portNumber, 10, serverIpAddress);
-            appController.writeLog(
+
+            //run method will be executed from javafx thread
+            Platform.runLater(() -> appController.writeLog(
                     "Server listening: " + ipAddress + ":" + portNumber
-            );
+            ));
+
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -46,9 +50,14 @@ public class ServerWorker implements Runnable{
         while(true) {
             try {
                 Socket clientSocket = serverSocket.accept();
-                appController.writeLog(
-                        "Connection with client established"
-                );
+
+                //run method will be executed from javafx thread
+                Platform.runLater(() -> appController.writeLog(
+                        "New connection: "
+                                + clientSocket.getInetAddress().getHostAddress() + ":"
+                                + clientSocket.getPort()
+                ));
+
                 if (clientSocket.isConnected()){
                     ClientHandler newClientHandler = new ClientHandler(
                             clientSocket,

@@ -12,12 +12,11 @@ import java.util.ArrayList;
  */
 public class ServerFile {
     private String username;
-    private String serverAbsolutePath;  //folder with all versions
+    private String serverAbsolutePath;      //folder with all versions
     private String clientAbsolutePath;
-    private String fileExtension;       //added to version files
-    private ArrayList<String> fileVersions;
+    private String fileExtension;           //added to version files
+    private ArrayList<String> fileVersions; //version format: MM-dd-yyyy_HH-mm-ss
 
-    //version format: MM-dd-yyyy_HH-mm-ss
 
     public ServerFile(String username, String clientAbsolutePath){
         this.username = username;
@@ -42,7 +41,7 @@ public class ServerFile {
         String firstFolder = root.toString().substring(0,1);
 
         //generate final path
-        path = GlobalConfig.storagePath +
+        path = GlobalConfig.storagePath + "/" +
                 username + "/" +
                 firstFolder + "/" +
                 subfolders;
@@ -60,7 +59,6 @@ public class ServerFile {
     }
     public String getClientAbsolutePath() {
         return clientAbsolutePath;
-
     }
     public String getFileExtension(){
         return fileExtension;
@@ -69,15 +67,10 @@ public class ServerFile {
     public ArrayList<String> getFileVersions(){
         return fileVersions;
     }
-    public int addFileVersion(String newVersion){
+    public void addFileVersion(String newVersion){
         fileVersions.add(newVersion);
-        return fileVersions.size() - 1;
     }
-    public void removeFileVersion(String oldVersio){
-        fileVersions.remove(oldVersio);
-    }
-
-    public String getUsername(){
-        return username;
+    public void removeFileVersion(String oldVersino){
+        fileVersions.remove(oldVersino);
     }
 }

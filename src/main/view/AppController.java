@@ -44,8 +44,8 @@ public class AppController implements Initializable {
     private CheckBox ch_rememberSettings;
 
     //-------------------Other variables
-    String noDirectorySelectedText = "No Directory selected";
-    boolean areSettingsRemembered;
+    private String noDirectorySelectedText = "No Directory selected";
+    private boolean areSettingsRemembered;
 
 
     //-------------------FXML methods
@@ -116,6 +116,9 @@ public class AppController implements Initializable {
     }
     @FXML
     void btn_quit_OnClick(ActionEvent event) {
+        //TO_DO
+
+
         //close application
         Platform.exit();
     }
@@ -140,7 +143,7 @@ public class AppController implements Initializable {
             return;
         }
 
-        if ( !storagePool.equals(noDirectorySelectedText) && serverIp != "" && serverPortNumber > 0 ) {
+        if ( !storagePool.equals(noDirectorySelectedText) && !serverIp.equals("") && serverPortNumber > 0 ) {
             //save values if Remember values checked
             if (ch_rememberSettings.isSelected()){
                 GlobalConfig newGlobalConfig = new GlobalConfig(
@@ -155,6 +158,7 @@ public class AppController implements Initializable {
             GlobalConfig.storagePath = storagePool;
 
             //disable all controls
+            btn_startServer.setDisable(true);
             btn_chooseFolder.setDisable(true);
             ch_rememberSettings.setDisable(true);
             tx_serverIpAddress.setDisable(true);
@@ -178,10 +182,11 @@ public class AppController implements Initializable {
     }
     @FXML
     void btn_stopServer_OnClick(ActionEvent event) {
-
+        //TO_DO
 
 
         //enable all controls
+        btn_startServer.setDisable(false);
         btn_chooseFolder.setDisable(false);
         ch_rememberSettings.setDisable(false);
         tx_serverIpAddress.setDisable(false);
@@ -207,11 +212,11 @@ public class AppController implements Initializable {
 
 
     //-------------------Public methods
+    //should be invoke in Platform.runLater way
     public void updateNumberOfActiveUsers(int numberOfActiveUsers){
         lb_activeUsersNumber.setText(Integer.toString(numberOfActiveUsers));
     }
-
     public void writeLog(String logContent){
-        //https://stackoverflow.com/questions/24116858/most-efficient-way-to-log-messages-to-javafx-textarea-via-threads-with-simple-cu
+        ta_logs.appendText(logContent + "\n");
     }
 }

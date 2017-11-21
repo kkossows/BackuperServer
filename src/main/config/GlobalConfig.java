@@ -25,7 +25,6 @@ public class GlobalConfig implements Serializable {
         this.savedServerPortNumber = -1;
         this.savedStoragePath = "";
     }
-
     public GlobalConfig(String savedServerIpAddress, int savedServerPortNumber, String savedStoragePath){
         this.defaultServerIpAddress = Properties.defaultServerIpAddress;
         this.defaultServerPortNumber = Properties.defaultServerPortNumber;
@@ -34,7 +33,6 @@ public class GlobalConfig implements Serializable {
         this.savedServerPortNumber = savedServerPortNumber;
         this.savedStoragePath = savedStoragePath;
     }
-
 
     public String getSavedStoragePath() {
         return this.savedStoragePath;

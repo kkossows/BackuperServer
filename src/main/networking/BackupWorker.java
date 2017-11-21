@@ -1,5 +1,6 @@
 package main.networking;
 
+import javafx.application.Platform;
 import main.config.ConfigDataManager;
 import main.config.UserConfig;
 import main.utils.ServerFile;
@@ -109,6 +110,13 @@ public class BackupWorker implements Runnable{
             if (in.readLine().equals(ClientMessage.BACKUP_FILE_FINISHED.name())){
                 //save changes
                 ConfigDataManager.createUserConfig(currentUserConfig);
+
+                //show log
+                Platform.runLater(() -> appController.writeLog(
+                        "File created: "
+                                + "filePath: " + filePath + " "
+                                + "version: " + fileVersion
+                ));
             }
             else {
                 //TO_DO

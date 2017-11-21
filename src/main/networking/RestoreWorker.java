@@ -1,5 +1,6 @@
 package main.networking;
 
+import javafx.application.Platform;
 import main.config.UserConfig;
 import main.view.AppController;
 
@@ -79,9 +80,16 @@ public class RestoreWorker  implements Runnable {
                             bytesSent += numberOfReadBytes;
                         }
                     }//close streams
+
                     //inform client about transfer finished
                     out.println(ServerMessage.SENDING_FILE_FINISHED.name());
 
+                    //show log
+                    Platform.runLater(() -> appController.writeLog(
+                            "File sent to client: "
+                                    + "filePath: " + filePath + " "
+                                    + "version: " + fileVersion
+                    ));
                 }
                 else {
                     //target file version not found
