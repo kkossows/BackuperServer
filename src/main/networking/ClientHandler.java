@@ -60,6 +60,14 @@ public class ClientHandler implements Runnable{
                         handleDeleteUser();
                         break;
 
+                    case LOG_OUT:
+                        handleLogOut();
+                        break;
+
+                    case BACKUP_FILE:
+                        handleBackupFile();
+                        break;
+
                     default:
                         break;
                 }
@@ -236,8 +244,30 @@ public class ClientHandler implements Runnable{
             out.println(ServerMessage.DELETE_USER_FINISHED.name());
         }
     }
+    private void handleLogOut(){
+        if (ConfigDataManager.isUserConfigFileExists(currentUserConfig.getUsername())){
+            //change flag and save
+            UserConfig userConfig = ConfigDataManager.readUserConfig(currentUserConfig.getUsername());
+            userConfig.setAlreadyLogin(false);
+            ConfigDataManager.createUserConfig(userConfig);
 
+            //change number on display view
+            numberOfActiveUsers--;
+            appController.updateNumberOfActiveUsers(numberOfActiveUsers);
 
+            //send final response
+            out.println(ServerMessage.LOG_OUT_FINISHED.name());
+
+            closeConnection();
+        }
+    }
+    private void handleBackupFile(){
+        BackupWorker backupWorker = new BackupWorker(
+                clientSocket, in, out,
+                currentUserConfig, appController );
+        Thread backupThread = new Thread(backupWorker);
+        backupThread.start();
+    }
 
 
     private void closeConnection(){

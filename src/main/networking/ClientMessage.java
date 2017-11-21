@@ -14,6 +14,5 @@ public enum  ClientMessage {
     LOG_OUT,
     BACKUP_FILE,
     BACKUP_FILE_FINISHED,
-    RESTORE_FILE,
-    EXIT
+    RESTORE_FILE
 }
