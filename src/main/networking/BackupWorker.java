@@ -23,7 +23,7 @@ public class BackupWorker implements Runnable{
     public BackupWorker(
             Socket clientSocket, BufferedReader inputStream, PrintWriter outputStream,
             UserConfig currentUserConfig, AppController appController) {
-        this.socket = socket;
+        this.socket = clientSocket;
         this.in = inputStream;
         this.out = outputStream;
         this.currentUserConfig = currentUserConfig;
@@ -85,31 +85,34 @@ public class BackupWorker implements Runnable{
                         fileVersion
                 );
             }
-            //save changes
-            ConfigDataManager.createUserConfig(currentUserConfig);
 
             //create streams
-            DataInputStream inputStream = new DataInputStream(socket.getInputStream());
-            FileOutputStream outputStream = new FileOutputStream(emptyFile);
+            try(DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+                FileOutputStream outputStream = new FileOutputStream(emptyFile)) {
 
-            //create variables
-            byte[] buffer = new byte[main.config.Properties.bufferSize];
-            int numberOfReadBytes;
-            long bytesToRead = fileSize;
-            long bytesRead = 0;
+                //create variables
+                byte[] buffer = new byte[main.config.Properties.bufferSize];
+                int numberOfReadBytes;
+                long bytesToRead = fileSize;
+                long bytesRead = 0;
 
-            while (bytesToRead > 0) {
-                if ((numberOfReadBytes = inputStream.read(buffer, 0, (int) Math.min(bytesToRead, buffer.length))) > 0) {
+                while (bytesToRead > 0) {
+                    if ((numberOfReadBytes = inputStream.read(buffer, 0, (int) Math.min(bytesToRead, buffer.length))) > 0) {
 
-                    outputStream.write(buffer);
-                    bytesToRead -= numberOfReadBytes;
-                    bytesRead += numberOfReadBytes;
+                        outputStream.write(buffer);
+                        bytesToRead -= numberOfReadBytes;
+                        bytesRead += numberOfReadBytes;
+                    }
                 }
+            }//close streams
+            //verify whether server read all data
+            if (in.readLine().equals(ClientMessage.BACKUP_FILE_FINISHED.name())){
+                //save changes
+                ConfigDataManager.createUserConfig(currentUserConfig);
             }
-
-            //inform client that server read all data
-            out.println(ServerMessage.SENDING_FILE_FINISHED.name());
-
+            else {
+                //TO_DO
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

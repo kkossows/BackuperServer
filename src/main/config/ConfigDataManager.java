@@ -1,7 +1,6 @@
 package main.config;
 
 import java.io.*;
-import java.util.ArrayList;
 
 /**
  * Created by kkossowski on 20.11.2017.
@@ -97,7 +96,7 @@ public class ConfigDataManager {
         return new File(Properties.appDataDir + username + ".dat").exists();
     }
     public static void createUserConfig(UserConfig userConfig) {
-        File userConfigFile = userConfig.getStorageFolder();
+        File userConfigFile = userConfig.getUserConfigFile();
 
         if (userConfigFile.exists())
             userConfigFile.delete();
@@ -127,5 +126,8 @@ public class ConfigDataManager {
             e.printStackTrace();
         }
         return userConfig;
+    }
+    public static void deleteUserConfig(UserConfig userConfig){
+        userConfig.getUserConfigFile().delete();
     }
 }

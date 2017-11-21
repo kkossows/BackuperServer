@@ -1,10 +1,8 @@
 package main.networking;
 
-import com.sun.deploy.util.SessionState;
 import main.config.*;
 import main.utils.ServerFile;
 import main.view.AppController;
-import sun.awt.ConstrainableGraphics;
 
 import java.io.*;
 import java.net.Socket;
@@ -53,19 +51,31 @@ public class ClientHandler implements Runnable{
                         break;
 
                     case GET_ALL_FILE_VERSIONS:
-                        handleGetAllFileVersions();
+                        handleGetAllFileVersionsMessage();
                         break;
 
                     case DELETE_USER:
-                        handleDeleteUser();
+                        handleDeleteUserMessage();
                         break;
 
                     case LOG_OUT:
-                        handleLogOut();
+                        handleLogOutMessage();
                         break;
 
                     case BACKUP_FILE:
-                        handleBackupFile();
+                        handleBackupFileMessage();
+                        break;
+
+                    case RESTORE_FILE:
+                        handleRestoreFileMessage();
+                        break;
+
+                    case REMOVE_FILE:
+                        handleRemoveFileMessage();
+                        break;
+
+                    case REMOVE_FILE_VERSION:
+                        handleRemoveFileVersionMessage();
                         break;
 
                     default:
@@ -128,8 +138,7 @@ public class ClientHandler implements Runnable{
             if (result) {
                 //create new UserConfigFile
                 ConfigDataManager.createUserConfig(new UserConfig(
-                        username,
-                        new File(Properties.appDataDir + username + ".dat")
+                        username
                 ));
 
                 //send final response
@@ -207,7 +216,7 @@ public class ClientHandler implements Runnable{
         }
         out.println(ServerMessage.SENDING_BACKUP_FILES_LIST_FINISHED.name());
     }
-    private void handleGetAllFileVersions(){
+    private void handleGetAllFileVersionsMessage(){
         String targetFilePath;
 
         try{
@@ -235,20 +244,32 @@ public class ClientHandler implements Runnable{
             e.printStackTrace();
         }
     }
-    private void handleDeleteUser() {
+    private void handleDeleteUserMessage() {
         if(ConfigDataManager.isUsersLoginCredentialsFileExists()) {
             //delete user from usersLoginCredentialsFile
             UsersLoginCredentials usersLoginCredentials = ConfigDataManager.readUsersLoginCredentials();
             usersLoginCredentials.removeUserCredentials(currentUserConfig.getUsername());
+            ConfigDataManager.createUsersLoginCredentials(usersLoginCredentials);
+
+            //delete all data associated with deletedUser
+            for (ServerFile serverFileToDelete : currentUserConfig.getServerFiles()){
+                currentUserConfig.deleteServerFile(serverFileToDelete.getServerAbsolutePath());
+            }
+
+            //delete userConfigFile
+            ConfigDataManager.deleteUserConfig(currentUserConfig);
+
             //send final response
             out.println(ServerMessage.DELETE_USER_FINISHED.name());
         }
     }
-    private void handleLogOut(){
+    private void handleLogOutMessage(){
         if (ConfigDataManager.isUserConfigFileExists(currentUserConfig.getUsername())){
-            //change flag and save
+            //change flag
             UserConfig userConfig = ConfigDataManager.readUserConfig(currentUserConfig.getUsername());
             userConfig.setAlreadyLogin(false);
+
+            //save
             ConfigDataManager.createUserConfig(userConfig);
 
             //change number on display view
@@ -261,14 +282,62 @@ public class ClientHandler implements Runnable{
             closeConnection();
         }
     }
-    private void handleBackupFile(){
+    private void handleBackupFileMessage(){
         BackupWorker backupWorker = new BackupWorker(
                 clientSocket, in, out,
                 currentUserConfig, appController );
         Thread backupThread = new Thread(backupWorker);
         backupThread.start();
     }
+    private void handleRestoreFileMessage(){
+        RestoreWorker restoreWorker = new RestoreWorker(
+                clientSocket, in, out,
+                currentUserConfig, appController );
+        Thread restoreThread = new Thread(restoreWorker);
+        restoreThread.start();
+    }
+    private void handleRemoveFileMessage(){
+        String filePath;
 
+        try {
+            out.println(ServerMessage.GET_FILE_PATH.name());
+            filePath = in.readLine();
+
+            //delete file
+            currentUserConfig.deleteServerFile(filePath);
+
+            //save userConfig
+            ConfigDataManager.createUserConfig(currentUserConfig);
+
+            //inform about operation success
+            out.println(ServerMessage.FILE_REMOVED.name());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private void handleRemoveFileVersionMessage(){
+        String filePath;
+        String fileVersion;
+
+        try {
+            out.println(ServerMessage.GET_FILE_PATH.name());
+            filePath = in.readLine();
+
+            out.println(ServerMessage.GET_FILE_VERSION.name());
+            fileVersion = in.readLine();
+
+            //delete file
+            currentUserConfig.deleteFileVersion(filePath, fileVersion);
+
+            //save userConfig
+            ConfigDataManager.createUserConfig(currentUserConfig);
+
+            //inform about operation success
+            out.println(ServerMessage.FILE_VERSION_REMOVED.name());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     private void closeConnection(){
         try {

@@ -73,4 +73,11 @@ public class ServerFile {
         fileVersions.add(newVersion);
         return fileVersions.size() - 1;
     }
+    public void removeFileVersion(String oldVersio){
+        fileVersions.remove(oldVersio);
+    }
+
+    public String getUsername(){
+        return username;
+    }
 }
