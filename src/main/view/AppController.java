@@ -1,11 +1,15 @@
 package main.view;
 
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import main.config.ConfigDataManager;
@@ -35,6 +39,8 @@ public class AppController implements Initializable {
     @FXML
     private Button btn_stopServer;
     @FXML
+    private Button btn_clearSettings;
+    @FXML
     private Button btn_chooseFolder;
     @FXML
     private Button btn_quit;
@@ -43,9 +49,14 @@ public class AppController implements Initializable {
     @FXML
     private CheckBox ch_rememberSettings;
 
+    //--------------Mouse event
+    private double xOffset;
+    private double yOffset;
+
     //-------------------Other variables
     private String noDirectorySelectedText = "No Directory selected";
     private boolean areSettingsRemembered;
+    ServerWorker serverWorker;
 
 
     //-------------------FXML methods
@@ -76,11 +87,26 @@ public class AppController implements Initializable {
         else{
             showInformationDialog(
                     "First application launch information",
-                    "1) Please, choose folder for application storage pool."
+                    "1) Please, choose folder for application storage pool.\n"
                             + "2) Please, change default ip address and port number if are improper for you."
             );
             lb_folderPath.setText(noDirectorySelectedText);
         }
+    }
+    public void makeDraggable(Scene scene, Stage stage){
+        scene.setOnMousePressed(new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent mouseEvent) {
+                // record a delta distance for the drag and drop operation.
+                xOffset = stage.getX() - mouseEvent.getSceneX();
+                yOffset = stage.getY() - mouseEvent.getSceneY();
+            }
+        });
+        scene.setOnMouseReleased(new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent mouseEvent) {
+                stage.setX(mouseEvent.getSceneX() + xOffset);
+                stage.setY(mouseEvent.getSceneY() + yOffset);
+            }
+        });
     }
     @FXML
     void btn_chooseFolder_OnClick(ActionEvent event) {
@@ -116,9 +142,6 @@ public class AppController implements Initializable {
     }
     @FXML
     void btn_quit_OnClick(ActionEvent event) {
-        //TO_DO
-
-
         //close application
         Platform.exit();
     }
@@ -160,18 +183,21 @@ public class AppController implements Initializable {
             //disable all controls
             btn_startServer.setDisable(true);
             btn_chooseFolder.setDisable(true);
+            btn_clearSettings.setDisable(true);
+            btn_quit.setDisable(true);
             ch_rememberSettings.setDisable(true);
             tx_serverIpAddress.setDisable(true);
             tx_serverPortNumber.setDisable(true);
 
             //start serverWorker
-            ServerWorker serverWorker = new ServerWorker(
+            serverWorker = new ServerWorker(
                     serverIp,
                     serverPortNumber,
                     this
             );
             Thread serverThread = new Thread(serverWorker);
-            serverWorker.run();
+            serverThread.setDaemon(true);
+            serverThread.start();
         }
         else {
             showWarningDialog(
@@ -184,10 +210,49 @@ public class AppController implements Initializable {
     void btn_stopServer_OnClick(ActionEvent event) {
         //TO_DO
 
+                //close server socket
+                serverWorker.closeServerSocket();
+
+//        Task<Void> closeTask = new Task<Void>(){
+//            @Override
+//            protected Void call() throws Exception {
+//                //close server socket
+//                serverWorker.closeServerSocket();
+//                return null;
+//            }
+//        };
+//        closeTask.setOnFailed(e -> {
+//            lb_waitingPaneLabel.textProperty().unbind();
+//
+//            if (registerTask.getException() instanceof NumberFormatException) {
+//                showWarningDialog(
+//                        "WRONG PORT VALUE",
+//                        "Please, enter only numbers as port value."
+//                );
+//            }
+//            else {
+//                ServerHandler.setServerError();
+//                showInformationDialog(
+//                        "SERVER OFFLINE",
+//                        "Please, enter correct server variables"
+//                );
+//            }
+//        });
+//
+//        //run task
+//        Thread closeThread = new Thread(closeTask);
+//        closeThread.setDaemon(true);
+//        closeThread.start();
+
+        //write log
+        writeLog(
+                "Server stop listening");
 
         //enable all controls
         btn_startServer.setDisable(false);
         btn_chooseFolder.setDisable(false);
+        btn_clearSettings.setDisable(false);
+        btn_quit.setDisable(false);
         ch_rememberSettings.setDisable(false);
         tx_serverIpAddress.setDisable(false);
         tx_serverPortNumber.setDisable(false);
@@ -195,16 +260,18 @@ public class AppController implements Initializable {
 
 
     //-------------------Other variables
-    private void showInformationDialog(String title, String content){
+    private void showInformationDialog(String header, String content){
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
+        alert.setTitle("INFORMATION");
+        alert.setHeaderText(header);
         alert.setContentText(content);
 
         alert.showAndWait();
     }
-    private void showWarningDialog(String title, String content){
+    private void showWarningDialog(String header, String content){
         Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle(title);
+        alert.setTitle("WARNING");
+        alert.setHeaderText(header);
         alert.setContentText(content);
 
         alert.showAndWait();

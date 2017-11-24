@@ -23,6 +23,7 @@ public class ServerFile {
         this.clientAbsolutePath = clientAbsolutePath;
         this.serverAbsolutePath = generateServerAbsolutePath();
         this.fileExtension = readExtensionFromPath();
+        this.fileVersions = new ArrayList<>();
         //create file pool (all version files are stored in folder with path serverAbsolutePath)
         new File(this.serverAbsolutePath).mkdirs();
     }
@@ -40,13 +41,18 @@ public class ServerFile {
         //make first folder name
         String firstFolder = root.toString().substring(0,1);
 
+        //get file name without extension to create folder
+        String fileFolder = new File(clientAbsolutePath).getName();
+        fileFolder = fileFolder.split("\\.")[0];
+
         //generate final path
-        path = GlobalConfig.storagePath + "/" +
+        String finalPath = GlobalConfig.storagePath + "/" +
                 username + "/" +
                 firstFolder + "/" +
-                subfolders;
+                subfolders + "/" +
+                fileFolder;
 
-        return path;
+        return finalPath;
     }
     private String readExtensionFromPath(){
         String path = new File(clientAbsolutePath).getName();

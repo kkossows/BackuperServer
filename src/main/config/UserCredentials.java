@@ -1,9 +1,11 @@
 package main.config;
 
+import java.io.Serializable;
+
 /**
  * Created by kkossowski on 20.11.2017.
  */
-public class UserCredentials {
+public class UserCredentials implements Serializable{
     private String username;
     private String password;
 

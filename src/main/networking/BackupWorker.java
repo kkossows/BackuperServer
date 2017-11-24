@@ -65,9 +65,6 @@ public class BackupWorker implements Runnable{
                             serverFileIndex,
                             fileVersion
                     );
-
-                    //send content request
-                    out.println(ServerMessage.GET_FILE_CONTENT.name());
                 }
             }
             else {
@@ -86,6 +83,9 @@ public class BackupWorker implements Runnable{
                         fileVersion
                 );
             }
+
+            //send content request
+            out.println(ServerMessage.GET_FILE_CONTENT.name());
 
             //create streams
             try(DataInputStream inputStream = new DataInputStream(socket.getInputStream());

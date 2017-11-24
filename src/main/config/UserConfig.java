@@ -44,7 +44,7 @@ public class UserConfig implements Serializable{
         //create folder storagePool and empty file uerConfigFile;
         try {
             userConfigFile.createNewFile();
-            storagePool.createNewFile();
+            storagePool.mkdir();
         } catch (IOException e) {
             e.printStackTrace();
         }

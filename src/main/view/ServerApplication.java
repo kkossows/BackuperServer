@@ -15,8 +15,11 @@ public class ServerApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Parent rootPane = FXMLLoader.load(getClass().getResource("/fxml/App.fxml"));
+        FXMLLoader loader = new FXMLLoader();
+        loader.setLocation(getClass().getResource("/fxml/App.fxml"));
+        Parent rootPane = loader.load();
         Scene appScene = new Scene(rootPane);
+        ((AppController) loader.getController()).makeDraggable(appScene, primaryStage);
         primaryStage.initStyle(StageStyle.UNDECORATED);
         primaryStage.setScene(appScene);
         primaryStage.show();

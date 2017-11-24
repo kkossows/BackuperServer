@@ -9,6 +9,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  * Worker responsible for making clientWorkers when connection arrive.
@@ -19,6 +20,8 @@ public class ServerWorker implements Runnable{
     private String ipAddress;
     private int portNumber;
     private AppController appController;
+    ServerSocket serverSocket;
+    private static ArrayList<ClientHandler> clientsHandlers = new ArrayList<>();
 
 
     public ServerWorker(String ipAddress, int portNumber, AppController appController){
@@ -30,9 +33,8 @@ public class ServerWorker implements Runnable{
 
     @Override
     public void run() {
-        //create server listening socket
-        ServerSocket serverSocket = null;
         try {
+            //create server listening socket
             InetAddress serverIpAddress = InetAddress.getByName(ipAddress);
             serverSocket = new ServerSocket(portNumber, 10, serverIpAddress);
 
@@ -63,6 +65,7 @@ public class ServerWorker implements Runnable{
                             clientSocket,
                             appController
                     );
+                    clientsHandlers.add(newClientHandler);
                     Thread newClientThread = new Thread(newClientHandler);
                     newClientThread.start();
                 }
@@ -71,5 +74,25 @@ public class ServerWorker implements Runnable{
                 return;
             }
         }
+    }
+
+    public void closeServerSocket(){
+        try {
+            //close all active clients connections
+            for (ClientHandler clientHandler : clientsHandlers){
+                clientHandler.closeConnection();
+            }
+            clientsHandlers.clear();
+
+            //close server socket
+            serverSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+    }
+
+    public static void setClientHandlerDeactivation(ClientHandler clientsHandler){
+        clientsHandlers.remove(clientsHandler);
     }
 }

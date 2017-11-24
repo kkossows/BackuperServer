@@ -17,7 +17,7 @@ public class ConfigDataManager {
 
 
     public static boolean isGlobalConfigFileExists(){
-        return new File(Properties.globalConfigFile).exists();
+        return new File(Properties.appDataDir + "/" + Properties.globalConfigFile).exists();
     }
     public static void createGlobalConfig(GlobalConfig globalConfig){
         File globalConfigFile = new File(Properties.appDataDir + Properties.globalConfigFile);
@@ -54,18 +54,18 @@ public class ConfigDataManager {
 
 
     public static boolean isUsersLoginCredentialsFileExists(){
-        return new File(Properties.usersLoginCredentialsFile).exists();
+        return new File(Properties.appDataDir + "/" + Properties.usersLoginCredentialsFile).exists();
     }
     public static void createUsersLoginCredentials(UsersLoginCredentials usersLoginCredentials){
         File usersLoginCredentialsFile = new File(
-                Properties.appDataDir + Properties.usersLoginCredentialsFile);
+                Properties.appDataDir + "/" + Properties.usersLoginCredentialsFile);
 
         if(usersLoginCredentialsFile.exists())
             usersLoginCredentialsFile.delete();
 
         try {
             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(usersLoginCredentialsFile));
-            oos.writeObject(usersLoginCredentialsFile);
+            oos.writeObject(usersLoginCredentials);
             oos.close();
 
         } catch (IOException e) {
