@@ -10,7 +10,7 @@ import java.net.Socket;
 /**
  * Created by kkossowski on 20.11.2017.
  */
-public class RestoreWorker  implements Runnable {
+public class RestoreWorker {
     private Socket socket;
     private BufferedReader in;
     private PrintWriter out;
@@ -18,28 +18,26 @@ public class RestoreWorker  implements Runnable {
     private AppController appController;
 
     public RestoreWorker(
-            Socket clientSocket, BufferedReader inputStream, PrintWriter outputStream,
+            Socket clientSocket, BufferedReader in, PrintWriter out,
             UserConfig currentUserConfig, AppController appController) {
 
         this.socket = clientSocket;
-        this.in = inputStream;
-        this.out = outputStream;
+        this.in = in;
+        this.out = out;
         this.currentUserConfig = currentUserConfig;
         this.appController = appController;
     }
 
-
-    @Override
-    public void run() {
+    public void runWorker() {
         String filePath;
         String fileVersion;
 
         try {
+            //handle protocol messages
             out.println(ServerMessage.GET_FILE_PATH.name());
             filePath = in.readLine();
             out.println(ServerMessage.GET_FILE_VERSION.name());
             fileVersion = in.readLine();
-
 
             //find target File
             int serverFileIndex = -1;
@@ -52,10 +50,10 @@ public class RestoreWorker  implements Runnable {
                         fileVersion
                 );
 
-                if (serverFileVersionIndex != -1){
+                if (serverFileVersionIndex != -1) {
                     //target file and file version exist, transfer data
 
-                    File targetFile = currentUserConfig.getFileVersion(serverFileIndex, filePath);
+                    File targetFile = currentUserConfig.getFileVersion(serverFileIndex, fileVersion);
                     long fileSize = targetFile.length();
 
                     //inform client about transferring data
@@ -63,8 +61,10 @@ public class RestoreWorker  implements Runnable {
                     out.println(fileSize);
                     out.println(ServerMessage.SENDING_FILE.name());
 
-                    try(DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
-                        FileInputStream inputStream = new FileInputStream(targetFile)) {
+                    //create proper output stream
+                    DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
+
+                    try (FileInputStream inputStream = new FileInputStream(targetFile)) {
 
                         byte[] buffer = new byte[main.config.Properties.bufferSize];
                         int numberOfReadBytes = 0;
@@ -73,36 +73,41 @@ public class RestoreWorker  implements Runnable {
 
                         //-1 if there is no more data because the end of the file has been reached
                         while (bytesToSend > 0
-                                && (numberOfReadBytes = inputStream.read(buffer, 0, (int) Math.min(buffer.length, bytesToSend))) != -1) {
+                                && (numberOfReadBytes = inputStream.read(buffer, 0, (int) Math.min(buffer.length, bytesToSend))) > 0) {
 
-                            outputStream.write(buffer);
+                            outputStream.write(buffer,0,numberOfReadBytes);
                             bytesToSend -= numberOfReadBytes;
                             bytesSent += numberOfReadBytes;
                         }
-                    }//close streams
+                    }//close file stream
 
                     //inform client about transfer finished
                     out.println(ServerMessage.SENDING_FILE_FINISHED.name());
 
                     //show log
                     Platform.runLater(() -> appController.writeLog(
-                            "File sent to client: "
+                            "[" + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "]" +
+                                    "[SecondThread-restore] "
+                                    + "File sent to client: "
                                     + "filePath: " + filePath + " "
                                     + "version: " + fileVersion
                     ));
-                }
-                else {
+
+                    //close connection (socket will be closed if stream close)
+                    outputStream.close();
+                } else {
                     //target file version not found
                     //TO-DO
                 }
             }
-            else {
-                //file not found
-                //TO-DO
-            }
         } catch (IOException e) {
-            e.printStackTrace();
+            //show log
+            Platform.runLater(() -> appController.writeLog(
+                    "[" + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "]" +
+                            "[SecondThread-restore] "
+                            + "connection failed"
+            ));
+            return;
         }
-
     }
 }

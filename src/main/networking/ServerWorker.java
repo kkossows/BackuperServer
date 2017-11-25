@@ -1,15 +1,17 @@
 package main.networking;
 
-import com.sun.xml.internal.bind.v2.model.annotation.RuntimeAnnotationReader;
+
 import javafx.application.Platform;
 import main.view.AppController;
-
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Worker responsible for making clientWorkers when connection arrive.
@@ -20,16 +22,15 @@ public class ServerWorker implements Runnable{
     private String ipAddress;
     private int portNumber;
     private AppController appController;
-    ServerSocket serverSocket;
+    private ServerSocket serverSocket;
     private static ArrayList<ClientHandler> clientsHandlers = new ArrayList<>();
-
+    private static HashMap<Integer, ClientHandler> codeToClientHandlerMap = new HashMap<Integer, ClientHandler>();
 
     public ServerWorker(String ipAddress, int portNumber, AppController appController){
         this.ipAddress = ipAddress;
         this.portNumber = portNumber;
         this.appController = appController;
     }
-
 
     @Override
     public void run() {
@@ -42,8 +43,6 @@ public class ServerWorker implements Runnable{
             Platform.runLater(() -> appController.writeLog(
                     "Server listening: " + ipAddress + ":" + portNumber
             ));
-
-
         } catch (IOException e) {
             e.printStackTrace();
             return;
@@ -51,6 +50,7 @@ public class ServerWorker implements Runnable{
 
         while(true) {
             try {
+                //accept client connection
                 Socket clientSocket = serverSocket.accept();
 
                 //run method will be executed from javafx thread
@@ -61,13 +61,61 @@ public class ServerWorker implements Runnable{
                 ));
 
                 if (clientSocket.isConnected()){
-                    ClientHandler newClientHandler = new ClientHandler(
-                            clientSocket,
-                            appController
-                    );
-                    clientsHandlers.add(newClientHandler);
-                    Thread newClientThread = new Thread(newClientHandler);
-                    newClientThread.start();
+                    //create streams
+                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                    PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+
+                    //handle init procedure
+                    String message = in.readLine();
+
+                    //show log
+                    Platform.runLater(() -> appController.writeLog(
+                            "[" + clientSocket.getInetAddress().getHostAddress() + ":" + clientSocket.getPort() + "]" +
+                                    "#SERVER_GET message: " + message
+                    ));
+
+                    if (message.equals(ClientMessage.INIT.name())) {
+                        //new user
+                        out.println(ServerMessage.INIT_CORRECT.name());
+
+                        //create new clientHandler
+                        ClientHandler newClientHandler = new ClientHandler(
+                                clientSocket,
+                                appController
+                        );
+                        clientsHandlers.add(newClientHandler);
+
+                        //run new thread for new client
+                        Thread newClientThread = new Thread(newClientHandler);
+                        newClientThread.start();
+                    }
+                    else if (message.equals(ClientMessage.INIT_WITH_CODE.name())){
+                        //user used authenticationCode
+                        out.println(ServerMessage.GET_CODE.name());
+                        int receivedCode = Integer.parseInt(in.readLine());
+
+                        //verify code
+                        if (codeToClientHandlerMap.containsKey(receivedCode)){
+                            out.println(ServerMessage.INIT_CORRECT.name());
+
+                            //create new ClientHandler with same currentClientConfig
+                            ClientHandler newClientHandler = new ClientHandler(
+                                    clientSocket,
+                                    appController,
+                                    codeToClientHandlerMap.get(receivedCode).getCurrentUserConfig()
+                            );
+                            clientsHandlers.add(newClientHandler);
+
+                            //run new thread
+                            Thread newClientThread = new Thread(newClientHandler);
+                            newClientThread.start();
+
+                        } else {
+                            out.println(ServerMessage.EXIT.name());
+                        }
+                    } else {
+                        out.println(ServerMessage.EXIT.name());
+                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -94,5 +142,17 @@ public class ServerWorker implements Runnable{
 
     public static void setClientHandlerDeactivation(ClientHandler clientsHandler){
         clientsHandlers.remove(clientsHandler);
+    }
+
+    public static void addAuthenticationCode(int authenticationCode, ClientHandler clientHandler){
+        codeToClientHandlerMap.put(authenticationCode, clientHandler);
+    }
+
+    public static void removeAuthenticationCode(int authenticationCode, ClientHandler clientHandler){
+        codeToClientHandlerMap.remove(authenticationCode, clientHandler);
+    }
+
+    public static HashMap<Integer, ClientHandler> getCodeToClientHandlerMap(){
+        return codeToClientHandlerMap;
     }
 }

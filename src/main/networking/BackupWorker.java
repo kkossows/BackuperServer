@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * Created by kkossowski on 20.11.2017.
  */
-public class BackupWorker implements Runnable{
+public class BackupWorker {
 
     private Socket socket;
     private BufferedReader in;
@@ -22,31 +22,30 @@ public class BackupWorker implements Runnable{
     private AppController appController;
 
     public BackupWorker(
-            Socket clientSocket, BufferedReader inputStream, PrintWriter outputStream,
+            Socket clientSocket, BufferedReader in, PrintWriter out,
             UserConfig currentUserConfig, AppController appController) {
         this.socket = clientSocket;
-        this.in = inputStream;
-        this.out = outputStream;
+        this.in = in;
+        this.out = out;
         this.currentUserConfig = currentUserConfig;
         this.appController = appController;
     }
 
 
-    @Override
-    public void run() {
+    public void runWorker() {
         File emptyFile;
         String filePath;
         String fileVersion;
         long fileSize;
 
         try {
+            //handle protocol messages
             out.println(ServerMessage.GET_FILE_PATH.name());
             filePath = in.readLine();
             out.println(ServerMessage.GET_FILE_VERSION.name());
             fileVersion = in.readLine();
             out.println(ServerMessage.GET_FILE_SIZE.name());
             fileSize = Long.parseLong(in.readLine());
-
 
             //verify whether sent version is already backup
             int serverFileIndex = currentUserConfig.findServerFile(filePath);
@@ -77,6 +76,8 @@ public class BackupWorker implements Runnable{
                 //add new file to list in userConfig
                 serverFileIndex = currentUserConfig.addServerFile(newServerFile);
 
+                //save will be done when version will be created and saved
+
                 //create new file version - targetEmptyFile
                 emptyFile = currentUserConfig.addAndCreateNewFileVersion(
                         serverFileIndex,
@@ -87,9 +88,10 @@ public class BackupWorker implements Runnable{
             //send content request
             out.println(ServerMessage.GET_FILE_CONTENT.name());
 
-            //create streams
-            try(DataInputStream inputStream = new DataInputStream(socket.getInputStream());
-                FileOutputStream outputStream = new FileOutputStream(emptyFile)) {
+            //create proper input stream
+            DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+
+            try(FileOutputStream outputStream = new FileOutputStream(emptyFile)) {
 
                 //create variables
                 byte[] buffer = new byte[main.config.Properties.bufferSize];
@@ -100,29 +102,44 @@ public class BackupWorker implements Runnable{
                 while (bytesToRead > 0) {
                     if ((numberOfReadBytes = inputStream.read(buffer, 0, (int) Math.min(bytesToRead, buffer.length))) > 0) {
 
-                        outputStream.write(buffer);
+                        outputStream.write(buffer,0,numberOfReadBytes);
                         bytesToRead -= numberOfReadBytes;
                         bytesRead += numberOfReadBytes;
                     }
                 }
-            }//close streams
+            }//close file stream
             //verify whether server read all data
-            if (in.readLine().equals(ClientMessage.BACKUP_FILE_FINISHED.name())){
+            String message = in.readLine().trim();
+            if (message.equals(ClientMessage.BACKUP_FILE_FINISHED.name())){
                 //save changes
                 ConfigDataManager.createUserConfig(currentUserConfig);
 
                 //show log
                 Platform.runLater(() -> appController.writeLog(
-                        "File created: "
+                        "[" + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "]" +
+                                "[SecondThread-backup] "
+                                + "File created: "
                                 + "filePath: " + filePath + " "
                                 + "version: " + fileVersion
                 ));
+
+                //close connection (socket will be closed if stream close)
+//                inputStream.close();
             }
             else {
                 //TO_DO
             }
+
         } catch (IOException e) {
             e.printStackTrace();
+
+            //show log
+            Platform.runLater(() -> appController.writeLog(
+                    "[" + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "]" +
+                            "[SecondThread-backup] "
+                            + "connection failed"
+            ));
+            return;
         }
     }
 }

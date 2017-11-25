@@ -143,21 +143,31 @@ public class UserConfig implements Serializable{
         String serverFileAbsolutePath = serverFiles.get(serverFileIndex).getServerAbsolutePath();
         String fileExtension = serverFiles.get(serverFileIndex).getFileExtension();
 
-        for(String version : serverFiles.get(serverFileIndex).getFileVersions()){
-            if (version.equals(versionToDelete)) {
-                //define file path
-                File newFile = new File(
-                        serverFileAbsolutePath
-                                + "/"
-                                + version + fileExtension
-                );
-                //delete physical data
-                if (newFile.exists())
-                    newFile.delete();
+        if (serverFiles.get(serverFileIndex).getFileVersions().contains(versionToDelete)){
+            //define file path
+            File newFile = new File(
+                    serverFileAbsolutePath
+                            + "/"
+                            + versionToDelete + fileExtension
+            );
+            //delete physical data
+            if (newFile.exists())
+                newFile.delete();
 
-                //delete version from list
-                serverFiles.get(serverFileIndex).removeFileVersion(version);
-            }
+            //delete version from list
+            serverFiles.get(serverFileIndex).removeFileVersion(versionToDelete);
+        }
+
+        //verify whether it was the last version of file or not, is yes delete ServerFile
+        if (serverFiles.get(serverFileIndex).getFileVersions().isEmpty()){
+            //delete folder structure connected to that file
+            removeEmptyFolderLoop(
+                    new File (serverFileAbsolutePath),
+                    storagePool.getAbsolutePath()
+            );
+
+            //delete serverFile from list
+            serverFiles.remove(serverFileIndex);
         }
     }
 
@@ -165,7 +175,7 @@ public class UserConfig implements Serializable{
         int index = -1;
         for(int i =0; i < serverFiles.size(); i++){
             if (serverFiles.get(i).getClientAbsolutePath().equals(clientAbsolutePath)){
-                index = 1;
+                index = i;
                 break;
             }
         }
@@ -193,7 +203,7 @@ public class UserConfig implements Serializable{
         String parentFolder = startFolder.getName();
         File lowerFolder = startFolder.getParentFile();
 
-        if(startFolder.getName().equals(finishFolder)){
+        if(startFolder.getAbsolutePath().equals(finishFolder)){
             return;
 
         } else {

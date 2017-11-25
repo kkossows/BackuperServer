@@ -3,6 +3,7 @@ package main.utils;
 import main.config.GlobalConfig;
 
 import java.io.File;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
@@ -10,7 +11,7 @@ import java.util.ArrayList;
  * Class represents structure of backup file on server
  * Created by kkossowski on 20.11.2017.
  */
-public class ServerFile {
+public class ServerFile implements Serializable{
     private String username;
     private String serverAbsolutePath;      //folder with all versions
     private String clientAbsolutePath;

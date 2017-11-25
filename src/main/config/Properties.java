@@ -14,4 +14,5 @@ public class Properties {
 
     public static int bufferSize                    = 8192;
 
+    public static int codeGeneratorRange                = 100;
 }

@@ -4,6 +4,8 @@ package main.networking;
  * Created by kkossowski on 18.11.2017.
  */
 public enum  ClientMessage {
+    INIT,
+    INIT_WITH_CODE,
     LOG_IN,
     REGISTER,
     GET_BACKUP_FILES_LIST,
