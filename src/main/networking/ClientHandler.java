@@ -360,13 +360,19 @@ public class ClientHandler implements Runnable {
             usersLoginCredentials.removeUserCredentials(currentUserConfig.getUsername());
             ConfigDataManager.createUsersLoginCredentials(usersLoginCredentials);
 
+            //create temp list
+            ArrayList<ServerFile> serverFilesToDeleteList = new ArrayList<>(currentUserConfig.getServerFiles());
+
             //delete all data associated with deletedUser
-            for (ServerFile serverFileToDelete : currentUserConfig.getServerFiles()) {
-                currentUserConfig.deleteServerFile(serverFileToDelete.getServerAbsolutePath());
+            for (ServerFile serverFileToDelete : serverFilesToDeleteList) {
+                currentUserConfig.deleteServerFile(serverFileToDelete.getClientAbsolutePath());
             }
 
             //delete userConfigFile
             ConfigDataManager.deleteUserConfig(currentUserConfig);
+
+            //delete empty user folder
+            currentUserConfig.getStoragePool().delete();
 
             //show log
             Platform.runLater(() -> appController.writeLog(

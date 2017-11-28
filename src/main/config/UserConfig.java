@@ -221,4 +221,8 @@ public class UserConfig implements Serializable{
             }
         }
     }
+
+    public File getStoragePool() {
+        return storagePool;
+    }
 }
