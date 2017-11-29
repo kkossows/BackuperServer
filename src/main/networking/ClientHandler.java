@@ -36,12 +36,14 @@ public class ClientHandler implements Runnable {
         initialize(clientSocket, appController);
         isSecondSocketUsed = false;
     }
+
     public ClientHandler(Socket clientSocket, AppController appController, UserConfig currentUserConfig) {
         this.currentUserConfig = currentUserConfig;
         initialize(clientSocket, appController);
         isSecondSocketUsed = true;
     }
-    private void initialize(Socket clientSocket, AppController appController){
+
+    private void initialize(Socket clientSocket, AppController appController) {
         this.clientSocket = clientSocket;
         this.appController = appController;
 
@@ -62,18 +64,18 @@ public class ClientHandler implements Runnable {
     public void run() {
         isConnectionAlive = true;
         ClientMessage message = null;
-        while (isConnectionAlive) {
 
+
+        while (isConnectionAlive) {
             try {
                 message = getClientMessage();
-            } catch (SocketException e) {
-                //if server closed socket
-                isConnectionAlive = false;
-
-            } catch (Exception e) {
-                //connection was interrupted - socket already closed
-                //TO_DO
-                isConnectionAlive = false;
+            }
+            catch (SocketException e) {
+                //client closed connection
+                message = null;
+            }
+            catch (Exception ex){
+                message = null;
             }
             try {
                 if (message != null) {
@@ -113,17 +115,14 @@ public class ClientHandler implements Runnable {
                     }
                 } else {
                     //if server receive null from readLine, it means that client close the connection socket
-                    if (isConnectionAlive) {
-                        //end thread
-                        isConnectionAlive = false;
-                        //disable active client handler
-                        ServerWorker.setClientHandlerDeactivation(this);
-                        //close the connection
-                        closeConnection();
-                    }
+                    //end thread
+                    isConnectionAlive = false;
+                    //close the connection
+                    closeConnection();
                 }
             }
-            catch (IOException e){
+
+            catch (IOException e) {
                 //during handle procedure
                 //show log
                 Platform.runLater(() -> appController.writeLog(
@@ -143,7 +142,9 @@ public class ClientHandler implements Runnable {
      * @return
      */
     private ClientMessage getClientMessage() throws Exception {
+        //read line from input stream
         String message = in.readLine();
+
         if (message != null) {
             //show log
             Platform.runLater(() -> appController.writeLog(
@@ -153,12 +154,6 @@ public class ClientHandler implements Runnable {
 
             return ClientMessage.valueOf(message);
         } else {
-            //if server receive null from readLine, it means that client close the connection socket
-            //show log
-            Platform.runLater(() -> appController.writeLog(
-                    "[" + clientIpAddress + ":" + clientPortNumber + "]" +
-                            "Client closed connection"
-            ));
             return null;
         }
     }
@@ -377,7 +372,7 @@ public class ClientHandler implements Runnable {
             //show log
             Platform.runLater(() -> appController.writeLog(
                     "[" + clientIpAddress + ":" + clientPortNumber + "]" +
-                    "User deleted: " + "username: " + currentUserConfig.getUsername()
+                            "User deleted: " + "username: " + currentUserConfig.getUsername()
             ));
 
             //send final response
@@ -395,7 +390,7 @@ public class ClientHandler implements Runnable {
             //show log
             Platform.runLater(() -> appController.writeLog(
                     "[" + clientIpAddress + ":" + clientPortNumber + "]" +
-                    "User logout: " + "username: " + currentUserConfig.getUsername()
+                            "User logout: " + "username: " + currentUserConfig.getUsername()
             ));
 
             //send final response
@@ -480,40 +475,39 @@ public class ClientHandler implements Runnable {
 
 
     public void closeConnection() {
-        try {
-            //user may be login and server may close connection
-            if (currentUserConfig != null
-                    && currentUserConfig.isAlreadyLogin()
-                    && !isSecondSocketUsed) {
-                //change view counter
-                numberOfActiveUsers--;
-                Platform.runLater(() -> appController.updateNumberOfActiveUsers(
-                        numberOfActiveUsers)
-                );
-
-                currentUserConfig.setAlreadyLogin(false);
-                ConfigDataManager.createUserConfig(currentUserConfig);
-            }
-
-            //show log
-            Platform.runLater(() -> appController.writeLog(
-                    "[" + clientIpAddress + ":" + clientPortNumber + "]" +
-                            "Connection closed"
-                    )
+        //user may be login and server may close connection
+        if (currentUserConfig != null
+                && currentUserConfig.isAlreadyLogin()
+                && !isSecondSocketUsed) {
+            //change view counter
+            numberOfActiveUsers--;
+            Platform.runLater(() -> appController.updateNumberOfActiveUsers(
+                    numberOfActiveUsers)
             );
 
-            //delete from list of active handlers
-            ServerWorker.setClientHandlerDeactivation(this);
+            currentUserConfig.setAlreadyLogin(false);
+            ConfigDataManager.createUserConfig(currentUserConfig);
+        }
 
+        //show log
+        Platform.runLater(() -> appController.writeLog(
+                "[" + clientIpAddress + ":" + clientPortNumber + "]" +
+                        "Connection closed"
+                )
+        );
+
+        //delete from list of active handlers
+        ServerWorker.setClientHandlerDeactivation(this);
+
+        //delete thread
+        ServerWorker.setThreadInactive(Thread.currentThread());
+
+        try {
             //close streams
             out.close();
             in.close();
             clientSocket.close();
-        } catch (java.net.SocketException ex) {
-            ex.printStackTrace();
-            return ;
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
             return;
         }
     }

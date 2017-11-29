@@ -208,45 +208,14 @@ public class AppController implements Initializable {
     }
     @FXML
     void btn_stopServer_OnClick(ActionEvent event) {
-        //TO_DO
+        //first, close serverSocket - new connection will not be established
+        serverWorker.closeServerSocket();
 
-                //close server socket
-                serverWorker.closeServerSocket();
-
-//        Task<Void> closeTask = new Task<Void>(){
-//            @Override
-//            protected Void call() throws Exception {
-//                //close server socket
-//                serverWorker.closeServerSocket();
-//                return null;
-//            }
-//        };
-//        closeTask.setOnFailed(e -> {
-//            lb_waitingPaneLabel.textProperty().unbind();
-//
-//            if (registerTask.getException() instanceof NumberFormatException) {
-//                showWarningDialog(
-//                        "WRONG PORT VALUE",
-//                        "Please, enter only numbers as port value."
-//                );
-//            }
-//            else {
-//                ServerHandler.setServerError();
-//                showInformationDialog(
-//                        "SERVER OFFLINE",
-//                        "Please, enter correct server variables"
-//                );
-//            }
-//        });
-//
-//        //run task
-//        Thread closeThread = new Thread(closeTask);
-//        closeThread.setDaemon(true);
-//        closeThread.start();
+        //second, close all active connections
+        serverWorker.closeActiveClientsConnections();
 
         //write log
-        writeLog(
-                "Server stop listening");
+        writeLog("Server stop listening");
 
         //enable all controls
         btn_startServer.setDisable(false);

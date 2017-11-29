@@ -21,6 +21,7 @@ public class BackupWorker {
     private UserConfig currentUserConfig;
     private AppController appController;
 
+
     public BackupWorker(
             Socket clientSocket, BufferedReader in, PrintWriter out,
             UserConfig currentUserConfig, AppController appController) {
@@ -33,10 +34,12 @@ public class BackupWorker {
 
 
     public void runWorker() {
-        File emptyFile;
-        String filePath;
-        String fileVersion;
+        ServerFile serverFile = null;
+        File emptyFile = null;
+        String filePath = null;
+        String fileVersion = null;
         long fileSize;
+        int serverFileIndex;
 
         try {
             //handle protocol messages
@@ -48,7 +51,7 @@ public class BackupWorker {
             fileSize = Long.parseLong(in.readLine());
 
             //verify whether sent version is already backup
-            int serverFileIndex = currentUserConfig.findServerFile(filePath);
+            serverFileIndex = currentUserConfig.findServerFile(filePath);
             if (serverFileIndex != -1){
                 //file exists - verify version
 
@@ -68,13 +71,13 @@ public class BackupWorker {
             }
             else {
                 //file not exist - create it
-                ServerFile newServerFile = new ServerFile(
+                serverFile = new ServerFile(
                         currentUserConfig.getUsername(),
                         filePath
                 );
 
                 //add new file to list in userConfig
-                serverFileIndex = currentUserConfig.addServerFile(newServerFile);
+                serverFileIndex = currentUserConfig.addServerFile(serverFile);
 
                 //save will be done when version will be created and saved
 
@@ -115,30 +118,51 @@ public class BackupWorker {
                 ConfigDataManager.createUserConfig(currentUserConfig);
 
                 //show log
+                StringBuilder sb = new StringBuilder();
+                sb.append("File created: ");
+                sb.append("filePath: ");
+                sb.append(filePath);
+                sb.append(" version: ");
+                sb.append(fileVersion);
                 Platform.runLater(() -> appController.writeLog(
                         "[" + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "]" +
-                                "[SecondThread-backup] "
-                                + "File created: "
-                                + "filePath: " + filePath + " "
-                                + "version: " + fileVersion
+                                "[SecondThread-backup] " +
+                                sb.toString()
                 ));
-
-                //close connection (socket will be closed if stream close)
-//                inputStream.close();
             }
             else {
                 //TO_DO
             }
-
         } catch (IOException e) {
-            e.printStackTrace();
-
             //show log
             Platform.runLater(() -> appController.writeLog(
                     "[" + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "]" +
                             "[SecondThread-backup] "
                             + "connection failed"
             ));
+
+            //remove not completed files
+            if (serverFile == null) {
+                //serverFile was before process begin
+
+                //delete only version
+                currentUserConfig.deleteFileVersion(
+                        filePath,
+                        fileVersion
+                );
+
+                //save new currentUserConfig
+                ConfigDataManager.createUserConfig(currentUserConfig);
+
+            } else {
+                //serverFile was created
+
+                //remove serverFile with new version and empty folders
+                currentUserConfig.deleteServerFile(serverFile.getClientAbsolutePath());
+
+                //save new currentUserConfig
+                ConfigDataManager.createUserConfig(currentUserConfig);
+            }
             return;
         }
     }

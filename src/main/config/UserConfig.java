@@ -124,6 +124,7 @@ public class UserConfig implements Serializable{
             newFile.createNewFile();
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
         return newFile;
     }
@@ -199,7 +200,7 @@ public class UserConfig implements Serializable{
      * @param startFolder - we do not want to clear all folders, it is username folder storage
      * @return
      */
-    private void removeEmptyFolderLoop(File startFolder, String finishFolder){
+    public void removeEmptyFolderLoop(File startFolder, String finishFolder){
         String parentFolder = startFolder.getName();
         File lowerFolder = startFolder.getParentFile();
 

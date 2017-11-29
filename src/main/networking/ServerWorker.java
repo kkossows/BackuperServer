@@ -25,6 +25,7 @@ public class ServerWorker implements Runnable{
     private ServerSocket serverSocket;
     private static ArrayList<ClientHandler> clientsHandlers = new ArrayList<>();
     private static HashMap<Integer, ClientHandler> codeToClientHandlerMap = new HashMap<Integer, ClientHandler>();
+    private static ArrayList<Thread> busyThreadsList = new ArrayList<>();
 
     public ServerWorker(String ipAddress, int portNumber, AppController appController){
         this.ipAddress = ipAddress;
@@ -108,6 +109,7 @@ public class ServerWorker implements Runnable{
 
                             //run new thread
                             Thread newClientThread = new Thread(newClientHandler);
+                            busyThreadsList.add(newClientThread);
                             newClientThread.start();
 
                         } else {
@@ -118,24 +120,31 @@ public class ServerWorker implements Runnable{
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                //server socket closed
                 return;
             }
         }
     }
 
-    public void closeServerSocket(){
-        try {
-            //close all active clients connections
-            for (ClientHandler clientHandler : clientsHandlers){
-                clientHandler.closeConnection();
-            }
-            clientsHandlers.clear();
+    public void closeActiveClientsConnections() {
+        //wait until all threads finished their jobs (backup and restore)
+//        try {
+//            for (int i = 0; i < busyThreadsList.size(); i++) {
+//                busyThreadsList.get(i).join();
+//            }
+//        } catch (InterruptedException e) {}
 
-            //close server socket
+        //close all connections
+        ArrayList<ClientHandler> clientHandlersList = new ArrayList<>(clientsHandlers);
+        for (ClientHandler clientHandler : clientHandlersList) {
+            clientHandler.closeConnection();
+        }
+    }
+    public void closeServerSocket(){
+        //close server socket
+        try {
             serverSocket.close();
         } catch (IOException e) {
-            e.printStackTrace();
             return;
         }
     }
@@ -154,5 +163,9 @@ public class ServerWorker implements Runnable{
 
     public static HashMap<Integer, ClientHandler> getCodeToClientHandlerMap(){
         return codeToClientHandlerMap;
+    }
+
+    public static void setThreadInactive(Thread thread){
+        busyThreadsList.remove(thread);
     }
 }
